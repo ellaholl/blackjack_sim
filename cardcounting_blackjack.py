@@ -2,16 +2,22 @@ import random
 
 # basic strategy : https://www.instructables.com/Card-Counting-and-Ranging-Bet-Sizes/
 
+# TODOs:
+# organize print statements
+# reshuffle deck so that the loop never runs out of cards
+# implement double
+# implement split
+# add more strategies
+# update main game loop to accumulates results of each round
+
 # Parameters
-
-# SET TO STRATEGY YOU WANT TO TEST:
 strategyName = "basic strategy"
+cc = 0  # card count that will be accumlated using updateCC(strategyName, args**)
 
-numberOfDecks = 1
+numberOfDecks = 3
 sSoft17 = False
 DAS = True
 earlySurrender = False
-cc = 0  # card count that will be accumlated using updateCC(strategy_name, args**)
 
 bettingUnit = 10
 
@@ -51,7 +57,7 @@ def sum_cards(hand):
     for card in hand:
         sum += hand_value(card)
 
-
+# incomplete: play dealer strategy against dealer?
 def dealer_strat(hand, dealerUpCard, splitCounter=0):
     while True:
         if sum_cards(hand) < 16:
@@ -59,29 +65,30 @@ def dealer_strat(hand, dealerUpCard, splitCounter=0):
         else:
             return "stand"
 
-# TODO: fix logic
+# retrieves row from strategy chart
 def get_player_index(hand):
     # print(hand[0])
     # print(hand[1])
     # print(hand_value(hand))
-    if hand[0] == hand[1]:  # match cases
-        for c in range(2, 11):
-            if hand_value([hand[0]]) == c:
-                return 24 + (c - 2)
-    if hand[0] == 'A' or hand[1] == 'A': # ace cases
-        for c in range(2, 11):
-            if hand_value([hand[0]]) == c and hand_value([hand[1]]) == 'A':
-                return 15 + (c-2)
-            if hand_value([hand[0]]) == 'A' and hand_value([hand[1]]) == c:
-                return 15 + (c-2)
-    if 5 >= hand_value(hand) <= 7: # remaining cases
-        return 0
-    for c in range(8, 21):
+    if len(hand) == 2:
+        if hand[0] == hand[1]:  # match cases
+            for c in range(2, 12):
+                if hand_value([hand[0]]) == c:
+                    return 24 + (c - 2)
+        if hand[0] == 'A' or hand[1] == 'A': # ace cases
+            for c in range(2, 12):
+                if hand_value([hand[0]]) == c and hand_value([hand[1]]) == 'A':
+                    return 15 + (c-2)
+                if hand_value([hand[0]]) == 'A' and hand_value([hand[1]]) == c:
+                    return 15 + (c-2)
+        if 5 <= hand_value(hand) <= 7: # remaining cases
+            return 0
+    for c in range(8, 22):
         if hand_value(hand) == c:
             return 1 + (c-8)
     print("error!")
 
-
+# retrieves column from strategy chart
 def get_dealer_index(hand):
     if hand[0] == 'A':
         return 9
