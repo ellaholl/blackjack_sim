@@ -97,7 +97,7 @@ def get_dealer_index(hand):
 
 
 # https://www.888casino.com/blog/blackjack-strategy-guide/blackjack-charts
-def play_basic_strategy(hand, dealerUpCard, splitCounter=0):
+def play_basic_strategy(deck, hand, dealerUpCard, bankroll, bet, splitCounter):
     # implement basic strategy grid here
     # return options: hit, stand, dobule, split, surrender, double
     array2D = []
@@ -108,23 +108,61 @@ def play_basic_strategy(hand, dealerUpCard, splitCounter=0):
         for line in f.readlines():
             array2D.append(line.split(','))
 
+    # action_holder[i], bankroll, bet_holder[i], holder_hand = play_hand(deck, splitPlayer_hand[i],
+    #                                                                                            bankroll, bet_holder[i],
+    #                                                                                            splitCount)
+
     while True:
 
         move = array2D[get_player_index(hand)][get_dealer_index(dealerUpCard)]
+        print(move)
         if move == 'H':
             hand.append(deal(deck))  # hit
-            print("H")
             print("Your hand:" + str(hand))
             print("Value: " + str(hand_value(hand)))
             if hand_value(hand) > 21:
-                return 'B'
+                return -1, bankroll, bet, hand
+        elif move == 'S':
+            return 1, bankroll, bet, hand
+        elif move == 'D':
+            if len(hand) == 2 and DAS == True:
+                bankroll -= bet
+                bet *= 2
+                hand.append(deal(deck))
+
+                print('Your hand:', hand)
+                print('Value:', hand_value(hand))
+
+                if hand_value(hand) > 21:
+                    print('Bust!')
+                    return -1, bankroll, bet, hand
+                else:
+                    return 2, bankroll, bet, hand
+            elif (splitCounter > 0 and DAS == False):
+                print('You cannot double after splitting')
+            else:
+                print('You can only double down on your first two cards.')
+                return 1, bankroll, bet, hand
+        elif move == 'P':
+            if len(hand) == 2 and hand_value(hand[0]) == hand_value(hand[1]) and splitCounter <= 2:
+                # Create two new hands
+                splitHand1 = [hand.pop(), deal(deck)]
+                splitHand2 = [hand.pop(), deal(deck)]
+
+                hand = [splitHand1, splitHand2]
+                bankroll -= bet
+
+                return 0, bankroll, bet, hand
+            else:
+                print('You can only split on your first two cards if they have the same value.')
+                print('You can only split a total of 3 times on a given initial hand.')
+
+        elif move == 'SUR':
+
+            return -0.5, bankroll, bet, hand
         else:
-            # try:
-            print(move)
-            return move
-            # except:
-            #     print("error reading strategy card")
-            #     exit(1)
+            print('Invalid action:' + move)
+            exit(1)
 
 
 # TEMPLATE FOR ARGS THAT STRATEGY SHOULD UTILIZE
@@ -354,22 +392,23 @@ while True:
 
     else:
         # Player's turn
+        # args: deck, hand, dealerUpCard, bankroll, bet, splitCounter
 
         if strategyName == "basic strategy":
-            action = play_basic_strategy(player_initial_hand, player_hand, False)
+            action, bankroll, bet, player_hand = play_basic_strategy(deck, player_initial_hand, player_hand, bankroll, bet, False)
         elif strategyName == "dealers strat":
-            action = play_basic_strategy(player_initial_hand, player_hand, False)
+            action, bankroll, bet, player_hand = play_basic_strategy(deck, player_initial_hand, player_hand, bankroll, bet, False)
         else:
             print("invalid strategy")
             exit(1)
         # list all strategies here...
 
         # If player busts, end the game
-        if action == "B":
+        if action == -1:
             print('You lose! -' + str(bet))
         else:
 
-            if action == 'P':  # Split
+            if action == 0:  # Split
                 splitPlayer_hand = [player_hand[0], player_hand[1]]
                 holder_hand = ['x', 'x']
                 bet_holder = [bet, bet]
@@ -398,9 +437,21 @@ while True:
                         bet_holder.append(bet)
                         action_holder.append(1)
 
-                        action_holder[i], bankroll, bet_holder[i], holder_hand = play_hand(deck, splitPlayer_hand[i],
-                                                                                           bankroll, bet_holder[i],
-                                                                                           splitCount)
+                        if strategyName == "basic strategy":
+                            action_holder[i], bankroll, bet_holder[i], holder_hand = play_basic_strategy(deck,
+                                                                                                         player_initial_hand,
+                                                                                                         player_hand,
+                                                                                                         bankroll, bet,
+                                                                                                         False)
+                        elif strategyName == "dealers strat":
+                            action_holder[i], bankroll, bet_holder[i], holder_hand = play_basic_strategy(deck,
+                                                                                                         player_initial_hand,
+                                                                                                         player_hand,
+                                                                                                         bankroll, bet,
+                                                                                                         False)
+                        else:
+                            print("invalid strategy")
+                            exit(1)
 
                         splitPlayer_hand[i] = holder_hand;
                         if type(splitPlayer_hand[i][0]) == type([]):
@@ -426,7 +477,6 @@ while True:
                         player_value = hand_value(splitPlayer_hand[i])
                         bankroll = determine_winner(player_value, dealer_value, action_holder[i], bet_holder[i],
                                                     bankroll)
-
 
 
             else:
